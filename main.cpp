@@ -2,13 +2,15 @@
 #include <stdio.h>
 
 int main() {
-    athena::cmd cmd;
+    athena::decoder::cmd cmd;
     cmd.pipeline = "meteor_m2-x_lrpt";
     cmd.input_file = "/home/nvt/Documents/Satdump-input/test.wav";
     cmd.output_directory = "outputtest";
-    cmd.baseband_format = athena::CF_32;
-    cmd.live = false;
-    athena::decode(cmd);
+    cmd.baseband_format = athena::decoder::CF_32;
+    cmd.live = true;
+    uint8_t success = athena::decoder::decode(cmd);
+    if (success = athena::decoder::ATHENA_ERROR_CODE)
+        printf("Decoding Error!");
     printf("Decode success!");
     return 0;
 }

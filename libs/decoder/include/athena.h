@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string>
 
-namespace athena {
+namespace athena::decoder {
 constexpr int8_t ATHENA_ERROR_CODE = -1;
 constexpr int8_t ATHENA_SUCCESS_CODE = 1;
 
@@ -61,6 +61,6 @@ class cmd {
  */
 int8_t decode(cmd cmd);
 
-} // namespace athena
+} // namespace athena::decoder
 
 #endif
