@@ -2,12 +2,14 @@
 #ifndef ATHENA_CORE
 #define ATHENA_CORE
 
+#include "telemetry.h"
+#include <memory>
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 namespace athena::decoder {
-constexpr int8_t ATHENA_ERROR_CODE = -1;
-constexpr int8_t ATHENA_SUCCESS_CODE = 1;
+enum athena_status { ATHENA_ERROR_CODE = 0, ATHENA_SUCCESS_CODE = 1 };
 
 /* @brief Baseband typy
  */
@@ -59,7 +61,9 @@ class cmd {
 
 /* @brief Call this function to demodulate and decode baseband file
  */
-int8_t decode(cmd cmd);
+athena_status
+decode(cmd cmd,
+       std::shared_ptr<std::vector<data::meteor::meteor_telemetry>> *telemetry);
 
 } // namespace athena::decoder
 
