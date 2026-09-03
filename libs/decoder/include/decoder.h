@@ -28,6 +28,40 @@ enum baseband_t {
  */
 enum until_t { SOFT, CADU, PRODUCTS };
 
+/* @brief Command structure
+ */
+class cmd {
+  public:
+    /* @brief Pipelines support list: meteor_m2-x_lrpt, gk2a_lrit.
+     * @params string pipeline (mandatory): meteor_m2-x_lrpt or gk2a_lrit.
+     * @params string input_file (mandatory): input baseband file.
+     * @params string output_directory (mandatory): output folder.
+     * @params until_t until (optional): default PRODUCTS level.
+     * @params u64 samplerate:
+     *      - Mandatory: .cf32, .cs32, .cs16, .cs8, .cu8
+     *      - Optional: .wav
+     * @params baseband_t baseband_format (mandatory): baseband type, default
+     * cf32.
+     * @params bool iq_swap:
+     *      - True: I/Q phase swap.
+     * @params buffer_size (optional): override default buffer size - default =
+     * 8192 bytes.
+     * @params bool live (optional):
+     *      - True: Enable live mode.
+     *      - False: Offline mode.
+     */
+    std::string pipeline = "";
+    std::string input_file = "";
+    std::string output_directory = "";
+    decoder::until_t until = decoder::PRODUCTS;
+    uint64_t samplerate = 0;
+    decoder::baseband_t baseband_format = decoder::CF_32;
+    bool iq_swap{false};
+    uint32_t buffer_size = 0;
+    bool doppler_logging{false};
+    athena_mode mode = OFFLINE_MODE;
+};
+
 class result {
   public:
     std::shared_ptr<std::vector<data::meteor::meteor_telemetry>> telemetry;
@@ -36,61 +70,14 @@ class result {
 
 class listener {
   public:
-    class result result;
-
-  public:
     virtual void on_progress(double progress) = 0;
-    virtual void on_finished() = 0;
+    virtual void on_finished(std::shared_ptr<class result> result) = 0;
     virtual void on_error(std::string error) = 0;
 };
 
-/* @brief Call this function to initialize decoder system
- */
-athena_status init_decoder();
-
 /* @brief Call this function to demodulate and decode baseband file
  */
-void decode(std::shared_ptr<listener> listener);
-
-/* @brief Call this function to set decoder mode
- */
-void set_mode(athena_mode mode);
-
-/* @brief Call this function to set pipeline
- */
-athena_status set_pipeline(std::string pipeline_id);
-
-/* @brief Call this function to set input_file
- */
-void set_input_file(std::string input_file);
-
-/* @brief Call this function to set output_directory
- */
-void set_output_directory(std::string output_directory);
-
-/* @brief Call this function to set until
- */
-athena_status set_until(until_t until);
-
-/* @brief Call this function to set samplerate
- */
-void set_samplerate(uint64_t samplerate);
-
-/* @brief Call this function to set baseband format
- */
-void set_baseband_format(baseband_t baseband_format);
-
-/* @brief Call this function to set iq_swap
- */
-void set_iq_swap(bool iq_swap);
-
-/* @brief Call this function to set buffer size
- */
-void set_buffer_size(uint32_t buffer_size);
-
-/* @brief Call this function to enable doppler logging
- */
-void enable_doppler_logging();
+void decode(cmd cmd, std::shared_ptr<listener> listener);
 
 } // namespace athena::decoder
 
