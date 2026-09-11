@@ -9,7 +9,12 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
+find_package(rtlsdr REQUIRED) # WARNING
+find_package(PNG REQUIRED)
+
+pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0>=4.10)
 pkg_check_modules(VOLK REQUIRED IMPORTED_TARGET volk)
+pkg_check_modules(FFTW3F IMPORTED_TARGET REQUIRED fftw3f)
 
 find_package(PNG REQUIRED)
 
@@ -23,6 +28,8 @@ set_target_properties(core PROPERTIES
 target_link_libraries(core INTERFACE 
     PkgConfig::VOLK 
     PNG::PNG
+    PkgConfig::FFTW3F
+    rtlsdr
 )
 
 add_executable(run main.cpp)
