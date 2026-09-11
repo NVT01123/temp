@@ -1,4 +1,4 @@
-#include "session.h"
+#include "live_session.h"
 #include <iostream>
 #include <memory>
 #include <string>
@@ -7,11 +7,11 @@
 class MyDecodeListener : public athena::session::DecodeListener {
   public:
     void onUpdate(int progress) override {
-        std::cout << "\r->> Progress: " << progress << "%" << std::flush
+        std::cout << "\n->> Progress: " << progress << "%" << std::flush
                   << std::endl;
     }
 
-    void onResponse(const athena::session::DecodeResult &result) override {
+    void onResponse(const DecodeResult &result) override {
         std::cout << "\n\nDecode finished!" << std::endl;
         if (!result.telemetry) {
             std::cout << "No telemetry data found." << std::endl;
@@ -57,10 +57,10 @@ class MyDecodeListener : public athena::session::DecodeListener {
     }
 };
 
-class MySdrListener : public athena::session::SDRListener {
+class MySdrListener : public SDRListener {
   public:
     void onSpectrum(const std::vector<float> &bins) override {}
-    void onStatus(const athena::session::Status &status) override {
+    void onStatus(const Status &status) override {
         std::cout << "\r[SDR] Carrier Locked: " << status.carrierLocked
                   << " | Symbol Locked: " << status.symbolLocked << std::flush;
     }
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
 
     // 2. Configure pipeline matching commented code
     athena::session::setPipeline(0); // 0 = meteor_m2-x_lrpt
-    athena::session::setMode(athena::session::LIVE_MODE);
+    athena::session::setMode(LIVE_MODE);
     athena::session::setInputFile(
         "/home/nvt/Documents/Satdump-input/"
         "2026-08-17_07-28-50_1024000SPS_137900000Hz.cf32");
