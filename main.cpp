@@ -1,100 +1,86 @@
 #include "live_session.h"
+#include "replay_session.h"
+#include <chrono>
 #include <iostream>
-#include <memory>
 #include <string>
-#include <vector>
+
+class MyReplayListener : public SDRListener {
+    int spectrum_count = 0;
+    int status_count = 0;
+    std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
+
+  public:
+    MyReplayListener() {
+        start_time = std::chrono::high_resolution_clock::now();
+    }
+
+    void onSpectrum(const std::vector<float> &bins) override {
+        spectrum_count++;
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            now - start_time)
+                            .count();
+        if (spectrum_count % 10 == 0) { // Log occasionally to avoid spam
+            std::cout << "[" << duration
+                      << " ms] onSpectrum called! (total: " << spectrum_count
+                      << ") - bins size: " << bins.size() << "\n";
+        }
+    }
+    void onStatus(const Status &status) override {
+        status_count++;
+        if (status_count % 10 == 0) {
+            std::cout << "[Status] fftFrames = " << status.fftFrames
+                      << " | queueHealth = " << status.queueHealth << "\n";
+        }
+    }
+    void onError(const std::string &message) override {
+        std::cout << "[Error] " << message << std::endl;
+    }
+};
 
 class MyDecodeListener : public athena::session::DecodeListener {
   public:
     void onUpdate(int progress) override {
-        std::cout << "\n->> Progress: " << progress << "%" << std::flush
-                  << std::endl;
+        std::cout << "[Decode] progress: " << progress << "%\n";
     }
-
     void onResponse(const DecodeResult &result) override {
-        std::cout << "\n\nDecode finished!" << std::endl;
-        if (!result.telemetry) {
-            std::cout << "No telemetry data found." << std::endl;
-            return;
-        }
-
-        std::cout << "Size of telemetry = " << result.telemetry->size()
-                  << std::endl;
-
-        int cnt = 0;
-        for (const auto &el : *result.telemetry) {
-            if (cnt++ >= 10)
-                break;
-
-            std::cout << "{\n";
-            std::cout << "    APID = " << (el.APID.empty() ? "null" : el.APID)
-                      << "\n";
-            std::cout << "    timestamp = " << el.ccsds_time << "\n";
-            std::cout << "    {\n";
-            std::cout << "        msu_mr_id = "
-                      << (el.msu_mr_id.empty() ? "null" : el.msu_mr_id) << "\n";
-            std::cout << "        msu_mr_set = "
-                      << (el.msu_mr_set.empty() ? "null" : el.msu_mr_set)
-                      << "\n";
-            std::cout << "    }\n";
-
-            if (el.type != athena::data::meteor::NONE &&
-                !el.type_name.empty()) {
-                std::cout << "    {\n";
-                std::cout << "    " << el.type_name << ": {\n";
-                for (const auto &pair : el.telemetry) {
-                    std::cout << "        " << pair.first << " = "
-                              << pair.second << "\n";
-                }
-                std::cout << "    }\n";
-            }
-            std::cout << "},\n";
-        }
+        std::cout << "[Decode] success!" << std::endl;
     }
-
     void onError(const std::string &message) override {
-        std::cout << "\nError: " << message << std::endl;
+        std::cout << "[Decode Error] " << message << std::endl;
     }
 };
 
-class MySdrListener : public SDRListener {
-  public:
-    void onSpectrum(const std::vector<float> &bins) override {}
-    void onStatus(const Status &status) override {
-        std::cout << "\r[SDR] Carrier Locked: " << status.carrierLocked
-                  << " | Symbol Locked: " << status.symbolLocked << std::flush;
-    }
-    void onError(const std::string &message) override {
-        std::cout << "\nSDR Error: " << message << std::endl;
-    }
-};
-
-int main(int argc, char *argv[]) {
-    // 1. Init session
+int main(int argc, char **argv) {
+    std::cout << "--- Testing athena::replay_session API ---" << std::endl;
     athena::session::open();
 
-    // 2. Configure pipeline matching commented code
-    athena::session::setPipeline(0); // 0 = meteor_m2-x_lrpt
-    athena::session::setMode(LIVE_MODE);
-    athena::session::setInputFile(
-        "/home/nvt/Documents/Satdump-input/"
-        "2026-08-17_07-28-50_1024000SPS_137900000Hz.cf32");
-    athena::session::setOutputDirectory("outputtest3");
-    athena::session::setBasebandFormat(0); // 0 = CF_32
-    athena::session::setSampleRateHz(1024e3);
-    athena::session::setDopplerLogging(true);
+    // Use test baseband file if provided, otherwise default
+    std::string input_file = "/home/nvt/Documents/Satdump-input/"
+                             "2026-08-17_07-28-50_1024000SPS_137900000Hz.cf32";
+    if (argc > 1) {
+        input_file = argv[1];
+    }
 
-    // 3. Setup listeners
+    std::cout << "Testing Replay Session with file: " << input_file
+              << std::endl;
+
+    // Configure pipeline first
+    athena::session::setOutputDirectory("outputdir");
+
+    MyReplayListener listener;
     MyDecodeListener decode_listener;
-    MySdrListener sdr_listener;
+    std::cout << "Starting replay..." << std::endl;
 
-    athena::session::capture(
-        sdr_listener); // Set global SDR listener for metrics
+    // Test the replay session (this will block and simulate time)
+    try {
+        athena::replay_session::open(input_file, listener, decode_listener);
+    } catch (const std::exception &e) {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
 
-    std::cout << "Bắt đầu tiến trình decode..." << std::endl;
-    athena::session::decode(decode_listener);
-    std::cout << "\nTiến trình decode kết thúc." << std::endl;
-
+    std::cout << "Replay test completed." << std::endl;
     athena::session::close();
     return 0;
 }
+
